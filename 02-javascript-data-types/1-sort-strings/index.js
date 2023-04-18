@@ -5,19 +5,17 @@
  * @returns {string[]}
  */
 export function sortStrings(arr, param = 'asc') {
-  const sortedArr = [...arr].sort(function (a, b) {
+  return [...arr].sort(function (a, b) {
+    let sortOrder;
+
     if (a[0].match(/[a-z]/i) && !b[0].match(/[a-z]/i)) {
-      return 1;
+      sortOrder = 1;
     } else if (!a[0].match(/[a-z]/i) && b[0].match(/[a-z]/i)) {
-      return -1;
+      sortOrder = -1;
+    } else {
+      sortOrder = a.toLowerCase().localeCompare(b.toUpperCase());
     }
 
-    return a.toLowerCase().localeCompare(b.toUpperCase());
+    return param === 'asc' ? sortOrder : -sortOrder;
   });
-
-  if (param === 'asc') {
-    return sortedArr;
-  }
-
-  return sortedArr.reverse();
 }

@@ -7,9 +7,9 @@
 export const pick = (obj, ...fields) => {
   const composedObj = {};
 
-  for (let key in fields) {
-    if (fields[key] in obj) {
-      composedObj[fields[key]] = obj[fields[key]];
+  for (let field of fields) {
+    if (Object.keys(obj).includes(field)) {
+      composedObj[field] = obj[field];
     }
   }
 
