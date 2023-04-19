@@ -6,15 +6,7 @@
  */
 export function sortStrings(arr, param = 'asc') {
   return [...arr].sort(function (a, b) {
-    let sortOrder;
-
-    if (a[0].match(/[a-z]/i) && !b[0].match(/[a-z]/i)) {
-      sortOrder = 1;
-    } else if (!a[0].match(/[a-z]/i) && b[0].match(/[a-z]/i)) {
-      sortOrder = -1;
-    } else {
-      sortOrder = a.toLowerCase().localeCompare(b.toUpperCase());
-    }
+    const sortOrder = a.toLowerCase().localeCompare(b.toUpperCase(), ['ru', 'en']);
 
     return param === 'asc' ? sortOrder : -sortOrder;
   });
