@@ -5,5 +5,13 @@
  * @returns {object} - returns the new object
  */
 export const pick = (obj, ...fields) => {
+  const composedObj = {};
 
+  for (let field of fields) {
+    if (Object.keys(obj).includes(field)) {
+      composedObj[field] = obj[field];
+    }
+  }
+
+  return composedObj;
 };
