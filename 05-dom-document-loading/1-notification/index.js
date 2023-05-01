@@ -1,44 +1,47 @@
 export default class NotificationMessage {
+  static notification;
+
   constructor(message, {
     duration = 1000,
     type = 'success',
   } = {}) {
     this._message = message;
     this._type = type;
-    this._duration = duration;
+    this.duration = duration;
 
     this.createNotification();
   }
 
   get template() {
     return `
-      <div class="notification ${this._type}">
-        <div class="notification-header">
-          Header
+        <div class="notification ${this._type}" style="--value:${this.duration / 1000}s">
+          <div class="timer"></div>
+          <div class="inner-wrapper">
+            <div class="notification-header">success</div>
+            <div class="notification-body">
+              ${this._message}
+            </div>
+          </div>
         </div>
-        <div class="notification-body">
-           ${this._message}
-        </div>
-        <div class="timer"></div>
-      </div>
     `;
   }
 
   createNotification() {
+    if (NotificationMessage.notification) {
+      NotificationMessage.notification.remove();
+    }
+
     const wrapper = document.createElement('div');
 
     wrapper.innerHTML = this.template;
 
-    const oldNotification = document.querySelector('.notification');
-    if (oldNotification) {
-      oldNotification.remove();
-    }
-
     this.element = wrapper.firstElementChild;
+
+    NotificationMessage.notification = this.element;
   }
 
   show(div = document.body) {
-    this._timer = setTimeout(() => this.remove(), this._duration);
+    this._timer = setTimeout(() => this.remove(), this.duration);
 
     div.append(this.element);
   }
