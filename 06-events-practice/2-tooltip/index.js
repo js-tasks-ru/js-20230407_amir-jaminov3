@@ -1,6 +1,5 @@
 class Tooltip {
   static instance;
-  static flag;
 
   constructor() {
     if (!Tooltip.instance) {
@@ -11,59 +10,40 @@ class Tooltip {
   }
 
   initialize () {
-    this.render();
+    this.initListeners();
   }
 
-  render () {
+  render (html) {
     const wrapper = document.createElement("div");
-    wrapper.innerHTML = `<div class="tooltip"></div>`;
+    wrapper.innerHTML = `<div class="tooltip">${html}</div>`;
 
     this.element = wrapper.firstElementChild;
 
     document.body.append(this.element);
-
-    this.addListeners();
   }
 
-  addListeners () {
-    const divs = document.querySelectorAll('div');
-    const element = Tooltip.instance.element;
+  documentPointMove = event => {
+    this.element.style.left = (event.clientX + 10) + 'px';
+    this.element.style.top = (event.clientY + 10) + 'px';
+  }
 
-    for (const div of divs) {
-      div.addEventListener('pointerover', function (e) {
-        if (e.defaultPrevented) {
-          return false;
-        }
+  documentPointOver = event => {
+    const element = event.target.closest('[data-tooltip]');
 
-        if (e.target.dataset.tooltip) {
-          document.body.append(element);
-          Tooltip.flag = true;
-
-          element.innerHTML = e.target.dataset.tooltip;
-          element.style.left = e.clientX + 'px';
-          element.style.top = e.clientY + 'px';
-          e.preventDefault();
-        }
-      });
-
-      div.addEventListener('pointermove', function (e) {
-        if (Tooltip.flag) {
-          element.style.left = e.clientX + 'px';
-          element.style.top = e.clientY + 'px';
-        }
-      });
-
-      div.addEventListener('pointerout', function (e) {
-        if (e.defaultPrevented) {
-          return false;
-        }
-
-        Tooltip.flag = false;
-        element.remove();
-
-        e.preventDefault();
-      });
+    if (element) {
+      this.render(element.dataset.tooltip);
+      document.body.addEventListener('pointermove', this.documentPointMove);
     }
+  }
+
+  documentPointerOut = () => {
+    this.destroy();
+    document.body.removeEventListener('pointermove', this.documentPointMove);
+  }
+
+  initListeners () {
+    document.body.addEventListener('pointerover', this.documentPointOver);
+    document.body.addEventListener('pointerout', this.documentPointerOut);
   }
 
   destroy () {
