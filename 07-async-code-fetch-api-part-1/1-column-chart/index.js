@@ -123,9 +123,9 @@ export default class ColumnChart {
     this.subElements.body.innerHTML = this.getColumnBody();
   }
 
-  update(from, to) {
+  async update(from, to) {
     this.fullUrl = this.getFullUrl(this.url, { from, to });
-    this.getFetchPromise().then(this.initData);
+    await this.getFetchPromise().then(this.initData);
 
     return this.rawData;
   }
