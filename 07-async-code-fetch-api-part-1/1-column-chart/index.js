@@ -83,9 +83,9 @@ export default class ColumnChart {
     return result;
   }
 
-  getFetchPromise () {
+  async getFetchPromise () {
     try {
-      return fetchJson(this.fullUrl, {
+      return await fetchJson(this.fullUrl, {
         method: 'GET',
       });
     } catch (FetchError) {

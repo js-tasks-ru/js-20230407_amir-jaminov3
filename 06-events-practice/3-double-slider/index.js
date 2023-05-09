@@ -1,131 +1,189 @@
 export default class DoubleSlider {
-  slider = '';
+  element;
+  subElements = {};
 
-  leftPosition = 0;
-  rightPosition = 0;
+  onThumbPointerMove = event => {
+    event.preventDefault();
+
+    const { left: innerLeft, right: innerRight, width } = this.subElements.inner.getBoundingClientRect();
+
+    if (this.dragging === this.subElements.thumbLeft) {
+      let newLeft = (event.clientX - innerLeft + this.shiftX) / width;
+
+      if (newLeft < 0) {
+        newLeft = 0;
+      }
+
+      newLeft *= 100;
+
+      const right = parseFloat(this.subElements.thumbRight.style.right);
+
+      if (newLeft + right > 100) {
+        newLeft = 100 - right;
+      }
+
+      this.dragging.style.left = this.subElements.progress.style.left = newLeft + '%';
+      this.subElements.from.innerHTML = this.formatValue(this.getValue().from);
+    }
+
+    if (this.dragging === this.subElements.thumbRight) {
+      let newRight = (innerRight - event.clientX - this.shiftX) / width;
+
+      if (newRight < 0) {
+        newRight = 0;
+      }
+      newRight *= 100;
+
+      const left = parseFloat(this.subElements.thumbLeft.style.left);
+
+      if (left + newRight > 100) {
+        newRight = 100 - left;
+      }
+      this.dragging.style.right = this.subElements.progress.style.right = newRight + '%';
+      this.subElements.to.innerHTML = this.formatValue(this.getValue().to);
+    }
+  };
+
+  onThumbPointerUp = () => {
+    this.element.classList.remove('range-slider_dragging');
+
+    document.removeEventListener('pointermove', this.onThumbPointerMove);
+    document.removeEventListener('pointerup', this.onThumbPointerUp);
+
+    this.element.dispatchEvent(new CustomEvent('range-select', {
+      detail: this.getValue(),
+      bubbles: true
+    }));
+  };
 
   constructor({
-    min = 0,
-    max = 100,
-    selected: {
-      from = min,
-      to = max
-    } = {},
-    formatValue = data => data
+    min = 100,
+    max = 200,
+    formatValue = value => '$' + value,
+    selected = {
+      from: min,
+      to: max
+    }
   } = {}) {
     this.min = min;
     this.max = max;
     this.formatValue = formatValue;
-
-    this.selected = {
-      from: formatValue(from),
-      to: formatValue(to)
-    };
+    this.selected = selected;
 
     this.render();
   }
 
   get template() {
+    const { from, to } = this.selected;
+
     return `<div class="range-slider">
-      <span data-element="from">${this.selected.from}</span>
-      <div data-element="slider" class="range-slider__inner">
-        <span data-element="progress" class="range-slider__progress" style="
-            left: ${ (this.selected.from - this.min) / (this.max - this.min) * 100 }%;
-            right: ${ (this.max - this.selected.to) / (this.max - this.min) * 100 }%
-        "></span>
-        <span data-element="leftSlider" style="left:
-            ${ (this.selected.from - this.min) / (this.max - this.min) * 100 }%
-        " class="range-slider__thumb-left"></span>
-        <span data-element="rightSlider" style="right:
-            ${ (this.max - this.selected.to) / (this.max - this.min) * 100 }%
-        " class="range-slider__thumb-right"></span>
+      <span data-element="from">${this.formatValue(from)}</span>
+      <div data-element="inner" class="range-slider__inner">
+        <span data-element="progress" class="range-slider__progress"></span>
+        <span data-element="thumbLeft" class="range-slider__thumb-left"></span>
+        <span data-element="thumbRight" class="range-slider__thumb-right"></span>
       </div>
-      <span data-element="to">${this.selected.to}</span>
+      <span data-element="to">${this.formatValue(to)}</span>
     </div>`;
   }
 
-  initSubElements() {
-    const result = {} ;
-    const elements = this.element.querySelectorAll('[data-element]');
+  render() {
+    const element = document.createElement('div');
+
+    element.innerHTML = this.template;
+
+    this.element = element.firstElementChild;
+    this.element.ondragstart = () => false;
+
+    this.subElements = this.getSubElements(element);
+
+    this.initEventListeners();
+
+    this.update();
+  }
+
+  initEventListeners() {
+    const { thumbLeft, thumbRight } = this.subElements;
+
+    thumbLeft.addEventListener('pointerdown', event => this.onThumbPointerDown(event));
+    thumbRight.addEventListener('pointerdown', event => this.onThumbPointerDown(event));
+  }
+
+  getSubElements(element) {
+    const result = {};
+    const elements = element.querySelectorAll('[data-element]');
+
     for (const subElement of elements) {
       const name = subElement.dataset.element;
+
       result[name] = subElement;
     }
 
-    this.subElements = result;
+    return result;
   }
 
-  render() {
-    const wrapper = document.createElement("div");
-
-    wrapper.innerHTML = this.template;
-    this.element = wrapper.firstElementChild;
-    this.initSubElements();
-    this.initListeners();
-  }
-
-  moveRightSlider(event, maxWidth) {
-    this.rightPosition = maxWidth - (event.clientX - 85);
-    if (maxWidth - this.rightPosition > this.leftPosition && this.rightPosition >= 0) {
-      this.subElements.rightSlider.style.right = this.rightPosition + 'px';
-      this.subElements.progress.style.right = this.rightPosition + 'px';
-
-      this.subElements.to.innerHTML = `${this.formatValue(Math.round(
-        (maxWidth - this.rightPosition) / maxWidth * (this.max - this.min) + this.min
-      ))}`;
-    }
-  }
-
-  moveLeftSlider(event, maxWidth) {
-    this.leftPosition = event.clientX - 80;
-    if (maxWidth - this.rightPosition > this.leftPosition && this.leftPosition >= 0) {
-      this.subElements.leftSlider.style.left = this.leftPosition + 'px';
-      this.subElements.progress.style.left = this.leftPosition + 'px';
-      this.subElements.from.innerHTML = `${this.formatValue(Math.round(
-        (this.leftPosition) / maxWidth * (this.max - this.min) + this.min
-      ))}`;
-    }
-  }
-
-  pointerMoveOnSlider = (event) => {
-    const maxWidth = this.subElements.slider.offsetWidth;
-
-    if (event.target.dataset.element === 'leftSlider') {
-      this.slider = 'left';
-    } else if (event.target.dataset.element === 'rightSlider') {
-      this.slider = 'right';
-    }
-
-    if (this.slider === 'right') {
-      this.moveRightSlider(event, maxWidth);
-    }
-
-    if (this.slider === 'left') {
-      this.moveLeftSlider(event, maxWidth);
-    }
-  }
-
-  pointerDownOnSlider = () => {
-    document.addEventListener('pointermove', this.pointerMoveOnSlider);
-  }
-
-  pointerUpOnSlider = () => {
-    this.slider = null;
-    document.removeEventListener('pointermove', this.pointerMoveOnSlider);
-  }
-
-  pointerOverOnSlider = () => {
-    document.addEventListener('pointerdown', this.pointerDownOnSlider);
-    document.addEventListener('pointerup', this.pointerUpOnSlider);
-  }
-
-  initListeners() {
-    this.element.addEventListener('pointerover', this.pointerOverOnSlider);
+  remove() {
+    this.element.remove();
   }
 
   destroy() {
-    if (this.element) {
-      this.element.remove();
+    this.remove();
+    document.removeEventListener('pointermove', this.onThumbPointerMove);
+    document.removeEventListener('pointerup', this.onThumbPointerUp);
+  }
+
+
+  getLeftShift (rangeTotal) {
+    return Math.floor((this.selected.from - this.min) / rangeTotal * 100);
+  }
+
+  getRightShift (rangeTotal) {
+    return Math.floor((this.max - this.selected.to) / rangeTotal * 100);
+  }
+
+  update() {
+    const diff = this.max - this.min;
+    const rangeTotal = diff > 0 ? diff : 1;
+
+    const left = this.getLeftShift(rangeTotal) + '%';
+    const right = this.getRightShift(rangeTotal) + '%';
+
+    this.subElements.progress.style.left = left;
+    this.subElements.progress.style.right = right;
+
+    this.subElements.thumbLeft.style.left = left;
+    this.subElements.thumbRight.style.right = right;
+  }
+
+  onThumbPointerDown(event) {
+    const thumbElem = event.target;
+
+    event.preventDefault();
+
+    const { left, right } = thumbElem.getBoundingClientRect();
+
+    if (thumbElem === this.subElements.thumbLeft) {
+      this.shiftX = right - event.clientX;
+    } else {
+      this.shiftX = left - event.clientX;
     }
+
+    this.dragging = thumbElem;
+
+    this.element.classList.add('range-slider_dragging');
+
+    document.addEventListener('pointermove', this.onThumbPointerMove);
+    document.addEventListener('pointerup', this.onThumbPointerUp);
+  }
+
+  getValue() {
+    const rangeTotal = this.max - this.min;
+    const { left } = this.subElements.thumbLeft.style;
+    const { right } = this.subElements.thumbRight.style;
+
+    const from = Math.round(this.min + parseFloat(left) * 0.01 * rangeTotal);
+    const to = Math.round(this.max - parseFloat(right) * 0.01 * rangeTotal);
+
+    return { from, to };
   }
 }

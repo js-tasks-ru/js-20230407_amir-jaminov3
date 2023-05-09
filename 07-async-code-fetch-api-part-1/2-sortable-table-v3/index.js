@@ -222,10 +222,10 @@ export default class SortableTable {
     }
   }
 
-  getFetchPromise () {
+  async getFetchPromise () {
     try {
       this.updateFullUrl();
-      return fetchJson(this.fullUrl, {
+      return await fetchJson(this.fullUrl, {
         method: 'GET',
       });
     } catch (FetchError) {
